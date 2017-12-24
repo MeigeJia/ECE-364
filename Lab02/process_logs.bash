@@ -1,0 +1,116 @@
+#! /bin/bash
+
+#---------------------------------------
+# $Author: ee364c08 $
+# $Date: 2017-09-03 22:16:42 -0400 (Sun, 03 Sep 2017) $
+#---------------------------------------
+
+# Do not modify above this line.
+
+average(){
+	data=("${!1}")
+	mode=$2
+	len=${#data[*]}
+	totSum=0
+	for k in "${data[@]}"
+ 	do
+  		let totSum=totSum+$k
+ 	done
+	avg=$(echo "scale=2;$totSum/$len" | bc)
+
+	if ([ $mode == "time" ])
+	then
+		echo "Average temperature for time $3 was $avg C." >>$4
+	else
+		echo "Average temperature for $3 was $avg C." >>$4
+	fi
+
+	return 0
+}
+
+median(){
+	data=("${!1}")
+	mode=$2
+	arrData=($(printf '%d\n' "${data[@]}" | sort -n))
+	len=${#arrData[*]}
+	let odd=len%2
+
+	if (( !$odd ))
+	then
+		let median1=($len/2)
+		let median2=$median1-1
+		median=$(echo "scale=2;(${arrData[$median1]}+${arrData[$median2]})/2" | bc)
+
+	else
+		let median1=len/2
+		median=$(echo "scale=2;(${arrData[$median1]})/1" | bc)
+	fi
+
+	if ([ $mode == "time" ])
+	then
+		echo "Median temperature for time $3 was $median C." >>$4
+	else
+		echo "Median temperature for $3 was $median C." >>$4
+	fi
+	return 0
+}
+
+numInputs="$#"
+if (( $numInputs != 1 ))
+then
+	printf "Usage: process_logs.bash <input file>\n"
+	exit 1
+fi
+
+if [[ ! -r "$1" ]]
+then
+	printf "Error: $1 is not a readable file\n"
+	exit 2
+fi
+
+outFname="$1.out"
+
+> "$outFname"
+
+lineNumber=0
+while read line
+do
+	IFS=$'\t' read -ra data <<< "$line"
+	curData=(${data[@]})
+	tempData=("${data[@]:1}")
+	len=${#data[*]}
+	if (( lineNumber > 0 ))
+	then
+		average tempData[@] "time" "${curData[0]}" "$outFname"
+		median tempData[@] "time" "${curData[0]}" "$outFname"
+		echo >> "$outFname"
+	fi
+	let lineNumber=lineNumber+1
+
+	#echo "${curData[@]}"
+done < $1
+
+let length=$len
+for (( i=1 ; $i<=$length ; i++))
+do
+	index=-1
+	while read line
+	do
+		if (( index >= 0 ))
+		then
+			IFS=$'\t' read -ra data <<< "$line"
+			tempData[index]=${data[$i]}
+		else
+			IFS=$'\t' read -ra data <<< "$line"
+			name=${data[$i]}
+		fi
+		let index=index+1
+	done < $1
+
+	average tempData[@] "user" "$name" "$outFname"
+	median tempData[@] "user" "$name" "$outFname"
+	echo >> "$outFname"
+done
+
+exit 0
+

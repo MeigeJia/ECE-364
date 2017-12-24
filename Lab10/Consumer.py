@@ -1,0 +1,171 @@
+import sys
+
+from PySide.QtGui import *
+from BasicUI import *
+
+
+class Consumer(QMainWindow, Ui_MainWindow):
+
+    def __init__(self, parent=None):
+
+        super(Consumer, self).__init__(parent)
+        self.setupUi(self)
+
+        ################ INITIALIZE VARIABLES #######################
+        self.compNames = [self.txtComponentName_1, self.txtComponentName_2, self.txtComponentName_3,
+                          self.txtComponentName_4, self.txtComponentName_5, self.txtComponentName_6,
+                          self.txtComponentName_7, self.txtComponentName_8, self.txtComponentName_9,
+                          self.txtComponentName_10, self.txtComponentName_11, self.txtComponentName_12,
+                          self.txtComponentName_13, self.txtComponentName_14, self.txtComponentName_15,
+                          self.txtComponentName_16, self.txtComponentName_17, self.txtComponentName_18,
+                          self.txtComponentName_19, self.txtComponentName_20]
+
+        self.compCounts = [self.txtComponentCount_1, self.txtComponentCount_2, self.txtComponentCount_3,
+                           self.txtComponentCount_4, self.txtComponentCount_5, self.txtComponentCount_6,
+                           self.txtComponentCount_7, self.txtComponentCount_8, self.txtComponentCount_9,
+                           self.txtComponentCount_10, self.txtComponentCount_11, self.txtComponentCount_12,
+                           self.txtComponentCount_13, self.txtComponentCount_14, self.txtComponentCount_15,
+                           self.txtComponentCount_16, self.txtComponentCount_17, self.txtComponentCount_18,
+                           self.txtComponentCount_19, self.txtComponentCount_20]
+
+        self.compData = list(zip(self.compNames, self.compCounts))
+
+        ################### DEFINE WIDGETS ###########################
+
+        ## Initialize environment
+        self.clear()
+
+        ## Define Clear Button
+        self.btnClear.clicked.connect(self.clear)
+
+        ## Enable Save / Disable Load
+        self.txtStudentName.textEdited.connect(self.enableSave)
+        self.txtStudentID.textEdited.connect(self.enableSave)
+        self.chkGraduate.stateChanged.connect(self.enableSave)
+        self.cboCollege.currentIndexChanged.connect(self.enableSave)
+        for x in self.compNames:
+            x.textEdited.connect(self.enableSave)
+        for x in self.compCounts:
+            x.textEdited.connect(self.enableSave)
+
+        ## Define Save Button
+        self.btnSave.clicked.connect(self.save)
+
+        ## Define Load Button
+        self.btnLoad.clicked.connect(self.loadData)
+
+
+
+    def clear(self):
+        self.txtStudentName.setText("")
+        self.txtStudentID.setText("")
+        self.chkGraduate.setChecked(False)
+        self.cboCollege.setCurrentIndex(0)
+
+        for x in self.compNames:
+            x.setText("")
+        for x in self.compCounts:
+            x.setText("")
+
+        self.btnLoad.setEnabled(True)
+        self.btnSave.setEnabled(False)
+
+    def enableSave(self):
+        self.btnLoad.setEnabled(False)
+        self.btnSave.setEnabled(True)
+
+    def save(self):
+        open("target.xml", "w+")
+        with open("target.xml", "a") as fp:
+            fp.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+            fp.write("<Content>\n")
+            fp.write("    <StudentName graduate=\"{}\">{}</StudentName>\n".format(str(self.chkGraduate.isChecked()).lower(),
+                                                                                self.txtStudentName.text()))
+            fp.write("    <StudentID>{}</StudentID>\n".format(self.txtStudentID.text()))
+            fp.write("    <College>{}</College>\n".format(self.cboCollege.currentText()))
+            fp.write("    <Components>\n")
+            for (name, count) in self.compData:
+                if name.text() != "" and count.text() != "":
+                    fp.write("        <Component name=\"{}\" count=\"{}\" />\n".format(name.text(), count.text()))
+            fp.write("    <Components>\n")
+            fp.write("<Content>")
+
+
+    def loadDataFromFile(self, filePath):
+        """
+        Handles the loading of the data from the given file name. This method will be invoked by the 'loadData' method.
+
+        *** YOU MUST USE THIS METHOD TO LOAD DATA FILES. ***
+        *** This method is required for unit tests! ***
+        """
+        import re
+
+        with open(filePath, "r") as fp:
+            for i, line in enumerate(fp):
+                pass
+        totLines = i+1
+
+        namesAndCounts = list()
+
+        with open(filePath, "r") as fp:
+            for i, line in enumerate(fp):
+                if(i == 0 or i == 1):
+                    continue
+                elif(i == 2):
+                    temp = re.search("\<StudentName graduate=\"(true|false)\"\>(.+?)\</StudentName\>", line)
+                    graduate = temp.group(1)
+                    name = temp.group(2)
+                elif(i == 3):
+                    temp = re.search("\<StudentID\>(.+?)\</StudentID\>", line)
+                    id = temp.group(1)
+                elif(i == 4):
+                    temp = re.search("\<College\>(.+?)\</College\>", line)
+                    college = temp.group(1)
+                elif(i == 5):
+                    continue
+                elif(i < totLines-2):
+                    temp = re.search("\<Component name=\"(.+?)\" count=\"(.+?)\" /\>", line)
+                    compName = temp.group(1)
+                    compCount = temp.group(2)
+                    namesAndCounts.append((compName, compCount))
+                else:
+                    continue
+
+        self.txtStudentName.setText(name)
+        self.txtStudentID.setText(id)
+        if graduate == "true":
+            self.chkGraduate.setChecked(True)
+        else:
+            self.chkGraduate.setChecked(False)
+        majors = ["-----", "Aerospace Engineering", "Civil Engineering", "Computer Engineering",
+                  "Electrical Engineering", "Industrial Engineering", "Mechanical Engineering"]
+        index = majors.index(college)
+        self.cboCollege.setCurrentIndex(index)
+
+        for i, (n, c) in enumerate(namesAndCounts):
+            (nameBox, countBox) = self.compData[i]
+            nameBox.setText(n)
+            countBox.setText(c)
+
+    def loadData(self):
+        """
+        Obtain a file name from a file dialog, and pass it on to the loading method. This is to facilitate automated
+        testing. Invoke this method when clicking on the 'load' button.
+
+        *** DO NOT MODIFY THIS METHOD! ***
+        """
+        filePath, _ = QFileDialog.getOpenFileName(self, caption='Open XML file ...', filter="XML files (*.xml)")
+
+        if not filePath:
+            return
+
+        self.loadDataFromFile(filePath)
+        self.enableSave()
+
+
+if __name__ == "__main__":
+    currentApp = QApplication(sys.argv)
+    currentForm = Consumer()
+
+    currentForm.show()
+    currentApp.exec_()

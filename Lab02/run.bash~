@@ -1,0 +1,25 @@
+#! /bin/bash
+
+#---------------------------------------
+# $Author$
+# $Date$
+#---------------------------------------
+
+# Do not modify above this line.
+
+for file in c-files/*.c
+do
+	
+	fileName=$(cut -c9- <<< "$file")
+	fileName=${fileName%.*}
+	printf "Compiling file $fileName... "
+	gcc -Wall -Werror "$file" 2> /dev/null 
+	if (( $? == 0)); then
+		printf "Compilation succeeded.\n"
+		./a.out > $fileName.out
+	else
+		printf "Error: Compilation failed.\n"
+	fi
+done
+
+exit 0

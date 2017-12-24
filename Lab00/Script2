@@ -1,0 +1,8 @@
+#! /bin/bash
+
+Num_Args=$@
+for (( I = Num_Args; I >= 0; I--))
+do
+	echo ${I}
+done
+

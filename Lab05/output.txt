@@ -1,0 +1,1 @@
+practical.bash: line 55: ece364.py: command not found
